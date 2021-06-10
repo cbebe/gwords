@@ -113,14 +113,12 @@ fn g_wordify(c: char) -> [char; 2] {
 }
 
 fn gword(str: &str) -> String {
-    let mut s = String::new();
-    // TODO: This should be a reduce tbh
-    str.chars().for_each(|c| {
+    str.chars().fold(String::new(), |mut s, c| {
         let [a, b] = g_wordify(c);
         s.push(a);
         s.push(b);
-    });
-    s
+        s
+    })
 }
 
 fn main() {
