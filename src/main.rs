@@ -5,6 +5,8 @@ const NUM_CHO: u32 = 19;
 const NUM_JOONG: u32 = 21;
 const NUM_JONG: u32 = 28;
 
+const NULL: char = '\0';
+
 // 초성
 const CHO: [char; NUM_CHO as usize] = [
     'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ',
@@ -32,13 +34,14 @@ fn get_ext(c: char) -> char {
 
 // 종성
 const JONG: [char; NUM_JONG as usize] = [
-    '\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ',
+    NULL, 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ',
     'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
 ];
 
 trait Get {
     fn g(&self, idx: u32) -> char;
     fn index_of(&self, c: char) -> Option<usize>;
+    fn in_arr(&self, c: char, idx: usize) -> Option<[char; 3]>;
 }
 
 impl Get for [char] {
@@ -47,6 +50,15 @@ impl Get for [char] {
     }
     fn index_of(&self, c: char) -> Option<usize> {
         self.iter().position(|&a| c == a)
+    }
+
+    fn in_arr(&self, c: char, idx: usize) -> Option<[char; 3]> {
+        if let Some(_) = self.index_of(c) {
+            let mut arr = [NULL, NULL, NULL];
+            arr[idx] = c;
+            return Some(arr);
+        }
+        None
     }
 }
 
@@ -61,19 +73,19 @@ fn decompose_from_code(c: char) -> [char; 3] {
 }
 
 fn decompose(c: char) -> [char; 3] {
-    if let Some(_) = CHO.index_of(c) {
-        return [c, '\0', '\0'];
+    if let Some(a) = CHO.in_arr(c, 0) {
+        return a;
     }
-    if let Some(_) = JOONG.index_of(c) {
-        return ['\0', c, '\0'];
+    if let Some(a) = JOONG.in_arr(c, 1) {
+        return a;
     }
-    if let Some(_) = JONG.index_of(c) {
-        return ['\0', '\0', c];
+    if let Some(a) = JONG.in_arr(c, 2) {
+        return a;
     }
 
     if ((c as u32) < FIRST_HANGUL_UNICODE) || ((c as u32) >= LAST_HANGUL_UNICODE) {
         println!("oops: {:X}", c as u32);
-        return ['\0', '\0', '\0'];
+        return [NULL, NULL, NULL];
     }
 
     decompose_from_code(c)
@@ -92,7 +104,7 @@ fn compose_lvt(cho: char, joong: char, jong: char) -> char {
 }
 
 fn compose(cho: char, joong: char) -> char {
-    compose_lvt(cho, joong, '\0')
+    compose_lvt(cho, joong, NULL)
 }
 
 fn g_wordify(c: char) -> [char; 2] {
@@ -100,11 +112,21 @@ fn g_wordify(c: char) -> [char; 2] {
     [compose(cho, joong), compose_lvt('ㄱ', get_ext(joong), jong)]
 }
 
+fn gword(str: &str) -> String {
+    let mut s = String::new();
+    // TODO: This should be a reduce tbh
+    str.chars().for_each(|c| {
+        let [a, b] = g_wordify(c);
+        s.push(a);
+        s.push(b);
+    });
+    s
+}
+
 fn main() {
-    println!("감사합니다");
-    println!("{}", 'ㄱ'.len_utf8());
-    let [cho, joong, _] = decompose('가');
-    println!("{}", compose(cho, joong));
+    // TODO: handle non-Hangul strings and characters
+    println!("{}", gword("안녕하세요"));
+    println!("{}", gword("감사합니다"));
 }
 
 #[cfg(test)]
@@ -114,17 +136,23 @@ mod test {
     #[test]
     fn test_decompose() {
         assert_eq!(['ㄱ', 'ㅗ', 'ㅅ'], decompose('곳'));
-        assert_eq!(['ㄱ', 'ㅏ', '\0'], decompose('가'));
-        assert_eq!(['ㄱ', '\0', '\0'], decompose('ㄱ'));
-        assert_eq!(['\0', 'ㅙ', '\0'], decompose('ㅙ'));
-        assert_eq!(['\0', '\0', 'ㅄ'], decompose('ㅄ'));
-        assert_eq!(['\0', '\0', '\0'], decompose('a'));
+        assert_eq!(['ㄱ', 'ㅏ', NULL], decompose('가'));
+        assert_eq!(['ㄱ', NULL, NULL], decompose('ㄱ'));
+        assert_eq!([NULL, 'ㅙ', NULL], decompose('ㅙ'));
+        assert_eq!([NULL, NULL, 'ㅄ'], decompose('ㅄ'));
+        assert_eq!([NULL, NULL, NULL], decompose('a'));
     }
 
     #[test]
     fn test_compose() {
         assert_eq!('감', compose_lvt('ㄱ', 'ㅏ', 'ㅁ'));
         assert_eq!('부', compose('ㅂ', 'ㅜ'));
+    }
+
+    #[test]
+    fn test_gword() {
+        assert_eq!("아간녀겅하가세게요고", gword("안녕하세요"));
+        assert_eq!("가감사가하갑니기다가", gword("감사합니다"));
     }
 
     #[test]
