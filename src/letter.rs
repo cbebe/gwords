@@ -92,24 +92,33 @@ fn decompose(c: char) -> [char; 3] {
 }
 
 // Code = FIRST_HANGUL_UNICODE (초성 index * NUM_JOONG * NUM_JONG) + (중성 index * NUM_JONG) + 종성
-fn compose_lvt(cho: char, joong: char, jong: char) -> char {
-    // TODO: remove unwraps
-    let cho_idx = CHO.index_of(cho).unwrap() as u32;
-    let joong_idx = JOONG.index_of(joong).unwrap() as u32;
-    let jong_idx = JONG.index_of(jong).unwrap() as u32;
+fn compose_lvt(cho: char, joong: char, jong: char) -> Option<char> {
+    let cho_idx = CHO.index_of(cho)?;
+    let joong_idx = JOONG.index_of(joong)?;
+    let jong_idx = JONG.index_of(jong)?;
     std::char::from_u32(
-        FIRST_HANGUL_UNICODE + cho_idx * NUM_JOONG * NUM_JONG + joong_idx * NUM_JONG + jong_idx,
+        FIRST_HANGUL_UNICODE
+            + cho_idx as u32 * NUM_JOONG * NUM_JONG
+            + joong_idx as u32 * NUM_JONG
+            + jong_idx as u32,
     )
-    .unwrap()
 }
 
-fn compose(cho: char, joong: char) -> char {
+fn compose(cho: char, joong: char) -> Option<char> {
     compose_lvt(cho, joong, NULL)
 }
 
-pub fn g_wordify(c: char) -> [char; 2] {
+pub fn g_wordify(c: char) -> Result<[char; 2], &'static str> {
     let [cho, joong, jong] = decompose(c);
-    [compose(cho, joong), compose_lvt('ㄱ', get_ext(joong), jong)]
+    if let Some(first) = compose(cho, joong) {
+        if let Some(second) = compose_lvt('ㄱ', get_ext(joong), jong) {
+            return Ok([first, second]);
+        } else {
+            return Err("Not Hangul");
+        }
+    } else {
+        return Err("Not Hangul");
+    }
 }
 
 #[cfg(test)]
@@ -127,15 +136,16 @@ mod test {
 
     #[test]
     fn test_compose() {
-        assert_eq!('감', compose_lvt('ㄱ', 'ㅏ', 'ㅁ'));
-        assert_eq!('부', compose('ㅂ', 'ㅜ'));
+        assert_eq!(Some('감'), compose_lvt('ㄱ', 'ㅏ', 'ㅁ'));
+        assert_eq!(Some('부'), compose('ㅂ', 'ㅜ'));
     }
 
     #[test]
     fn test_g_wordify() {
-        assert_eq!(['가', '가'], g_wordify('가'));
-        assert_eq!(['뿌', '굼'], g_wordify('뿜'));
-        assert_eq!(['왜', '개'], g_wordify('왜'));
-        assert_eq!(['퀴', '긱'], g_wordify('퀵'));
+        assert_eq!(Ok(['가', '가']), g_wordify('가'));
+        assert_eq!(Ok(['뿌', '굼']), g_wordify('뿜'));
+        assert_eq!(Ok(['왜', '개']), g_wordify('왜'));
+        assert_eq!(Ok(['퀴', '긱']), g_wordify('퀵'));
+        assert_eq!(Err("Not Hangul"), g_wordify('a'));
     }
 }
