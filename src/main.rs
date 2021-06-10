@@ -17,6 +17,19 @@ const JOONG: [char; NUM_JOONG as usize] = [
     'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ',
 ];
 
+fn get_ext(c: char) -> char {
+    match c {
+        'ㅑ' | 'ㅘ' => 'ㅏ',
+        'ㅖ' | 'ㅞ' => 'ㅔ',
+        'ㅒ' | 'ㅙ' => 'ㅐ',
+        'ㅟ' | 'ㅢ' => 'ㅣ',
+        'ㅕ' | 'ㅝ' => 'ㅓ',
+        'ㅛ' => 'ㅗ',
+        'ㅜ' => 'ㅜ',
+        _ => c,
+    }
+}
+
 // 종성
 const JONG: [char; NUM_JONG as usize] = [
     '\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ',
@@ -48,19 +61,14 @@ fn decompose_from_code(c: char) -> [char; 3] {
 }
 
 fn decompose(c: char) -> [char; 3] {
-    match CHO.index_of(c) {
-        Some(_) => return [c, '\0', '\0'],
-        None => {}
+    if let Some(_) = CHO.index_of(c) {
+        return [c, '\0', '\0'];
     }
-
-    match JOONG.index_of(c) {
-        Some(_) => return ['\0', c, '\0'],
-        None => {}
+    if let Some(_) = JOONG.index_of(c) {
+        return ['\0', c, '\0'];
     }
-
-    match JONG.index_of(c) {
-        Some(_) => return ['\0', '\0', c],
-        None => {}
+    if let Some(_) = JONG.index_of(c) {
+        return ['\0', '\0', c];
     }
 
     if ((c as u32) < FIRST_HANGUL_UNICODE) || ((c as u32) >= LAST_HANGUL_UNICODE) {
@@ -87,6 +95,11 @@ fn compose(cho: char, joong: char) -> char {
     compose_lvt(cho, joong, '\0')
 }
 
+fn g_wordify(c: char) -> [char; 2] {
+    let [cho, joong, jong] = decompose(c);
+    [compose(cho, joong), compose_lvt('ㄱ', get_ext(joong), jong)]
+}
+
 fn main() {
     println!("감사합니다");
     println!("{}", 'ㄱ'.len_utf8());
@@ -111,5 +124,14 @@ mod test {
     #[test]
     fn test_compose() {
         assert_eq!('감', compose_lvt('ㄱ', 'ㅏ', 'ㅁ'));
+        assert_eq!('부', compose('ㅂ', 'ㅜ'));
+    }
+
+    #[test]
+    fn test_g_wordify() {
+        assert_eq!(['가', '가'], g_wordify('가'));
+        assert_eq!(['뿌', '굼'], g_wordify('뿜'));
+        assert_eq!(['왜', '개'], g_wordify('왜'));
+        assert_eq!(['퀴', '긱'], g_wordify('퀵'));
     }
 }
