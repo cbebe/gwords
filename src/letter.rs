@@ -107,30 +107,14 @@ fn compose(cho: char, joong: char) -> char {
     compose_lvt(cho, joong, NULL)
 }
 
-fn g_wordify(c: char) -> [char; 2] {
+pub fn g_wordify(c: char) -> [char; 2] {
     let [cho, joong, jong] = decompose(c);
     [compose(cho, joong), compose_lvt('ㄱ', get_ext(joong), jong)]
-}
-
-fn gword(str: &str) -> String {
-    str.chars().fold(String::new(), |mut s, c| {
-        let [a, b] = g_wordify(c);
-        s.push(a);
-        s.push(b);
-        s
-    })
-}
-
-fn main() {
-    // TODO: handle non-Hangul strings and characters
-    println!("{}", gword("안녕하세요"));
-    println!("{}", gword("감사합니다"));
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-
     #[test]
     fn test_decompose() {
         assert_eq!(['ㄱ', 'ㅗ', 'ㅅ'], decompose('곳'));
@@ -145,12 +129,6 @@ mod test {
     fn test_compose() {
         assert_eq!('감', compose_lvt('ㄱ', 'ㅏ', 'ㅁ'));
         assert_eq!('부', compose('ㅂ', 'ㅜ'));
-    }
-
-    #[test]
-    fn test_gword() {
-        assert_eq!("아간녀겅하가세게요고", gword("안녕하세요"));
-        assert_eq!("가감사가하갑니기다가", gword("감사합니다"));
     }
 
     #[test]
