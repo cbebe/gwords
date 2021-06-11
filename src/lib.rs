@@ -3,10 +3,10 @@ pub mod letter;
 
 pub fn gword(phrase: &str) -> Result<String, &'static str> {
     phrase.chars().try_fold(String::new(), |mut s, c| {
-        letter::g_wordify(c).and_then(|[a, b]| {
+        letter::g_wordify(c).map(|[a, b]| {
             s.push(a);
             s.push(b);
-            Ok(s)
+            s
         })
     })
 }
