@@ -38,13 +38,13 @@ const JONG: [char; NUM_JONG as usize] = [
     'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
 ];
 
-trait Get {
-    fn g(&self, idx: u32) -> char;
-    fn index_of(&self, c: char) -> Option<usize>;
-    fn in_arr(&self, c: char, idx: usize) -> Option<[char; 3]>;
+trait Get<T> {
+    fn g(&self, idx: u32) -> T;
+    fn index_of(&self, c: T) -> Option<usize>;
+    fn in_arr(&self, c: T, idx: usize) -> Option<[T; 3]>;
 }
 
-impl Get for [char] {
+impl Get<char> for [char] {
     fn g(&self, idx: u32) -> char {
         self[idx as usize]
     }
@@ -53,7 +53,7 @@ impl Get for [char] {
     }
 
     fn in_arr(&self, c: char, idx: usize) -> Option<[char; 3]> {
-        if let Some(_) = self.index_of(c) {
+        if self.index_of(c).is_some() {
             let mut arr = [NULL, NULL, NULL];
             arr[idx] = c;
             return Some(arr);
@@ -110,15 +110,15 @@ fn compose(cho: char, joong: char) -> Option<char> {
 
 pub fn g_wordify(c: char) -> Result<[char; 2], &'static str> {
     let [cho, joong, jong] = decompose(c);
-    if let Some(first) = compose(cho, joong) {
-        if let Some(second) = compose_lvt('ㄱ', get_ext(joong), jong) {
-            return Ok([first, second]);
-        } else {
-            return Err("Not Hangul");
-        }
-    } else {
-        return Err("Not Hangul");
-    }
+    let first = match compose(cho, joong) {
+        Some(a) => a,
+        None => return Err("Not Hangul"),
+    };
+    let second = match compose_lvt('ㄱ', get_ext(joong), jong) {
+        Some(a) => a,
+        None => return Err("Not Hangul"),
+    };
+    Ok([first, second])
 }
 
 #[cfg(test)]
