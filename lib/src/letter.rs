@@ -19,19 +19,6 @@ const JOONG: [char; NUM_JOONG as usize] = [
     'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ',
 ];
 
-fn get_ext(c: char) -> char {
-    match c {
-        'ㅑ' | 'ㅘ' => 'ㅏ',
-        'ㅖ' | 'ㅞ' => 'ㅔ',
-        'ㅒ' | 'ㅙ' => 'ㅐ',
-        'ㅟ' | 'ㅢ' => 'ㅣ',
-        'ㅕ' | 'ㅝ' => 'ㅓ',
-        'ㅛ' => 'ㅗ',
-        'ㅜ' => 'ㅜ',
-        _ => c,
-    }
-}
-
 // 종성
 const JONG: [char; NUM_JONG as usize] = [
     NULL, 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ',
@@ -48,17 +35,39 @@ impl Get<char> for [char] {
     fn g(&self, idx: u32) -> char {
         self[idx as usize]
     }
+
     fn index_of(&self, c: char) -> Option<usize> {
         self.iter().position(|&a| c == a)
     }
 
     fn in_arr(&self, c: char, idx: usize) -> Option<[char; 3]> {
-        if self.index_of(c).is_some() {
-            let mut arr = [NULL, NULL, NULL];
-            arr[idx] = c;
-            return Some(arr);
-        }
-        None
+        self.index_of(c)?;
+        let mut arr = [NULL, NULL, NULL];
+        arr[idx] = c;
+        Some(arr)
+    }
+}
+
+fn get_ext(c: char) -> char {
+    match c {
+        'ㅑ' | 'ㅘ' => 'ㅏ',
+        'ㅖ' | 'ㅞ' => 'ㅔ',
+        'ㅒ' | 'ㅙ' => 'ㅐ',
+        'ㅟ' | 'ㅢ' => 'ㅣ',
+        'ㅕ' | 'ㅝ' => 'ㅓ',
+        'ㅛ' => 'ㅗ',
+        'ㅜ' => 'ㅜ',
+        _ => c,
+    }
+}
+
+trait InRange {
+    fn in_range(&self, min: u32, max: u32) -> bool;
+}
+
+impl InRange for u32 {
+    fn in_range(&self, min: u32, max: u32) -> bool {
+        *self >= min && *self < max
     }
 }
 
@@ -73,6 +82,7 @@ fn decompose_from_code(c: char) -> [char; 3] {
 }
 
 fn decompose(c: char) -> [char; 3] {
+    // Handle single 자모
     if let Some(a) = CHO.in_arr(c, 0) {
         return a;
     }
@@ -83,7 +93,7 @@ fn decompose(c: char) -> [char; 3] {
         return a;
     }
 
-    if ((c as u32) < FIRST_HANGUL_UNICODE) || ((c as u32) >= LAST_HANGUL_UNICODE) {
+    if !(c as u32).in_range(FIRST_HANGUL_UNICODE, LAST_HANGUL_UNICODE) {
         println!("oops: {:X}", c as u32);
         return [NULL, NULL, NULL];
     }
@@ -114,11 +124,12 @@ pub fn g_wordify(c: char) -> Result<[char; 2], &'static str> {
         Some(a) => a,
         None => return Err("Not Hangul"),
     };
-    let second = match compose_lvt('ㄱ', get_ext(joong), jong) {
-        Some(a) => a,
-        None => return Err("Not Hangul"),
-    };
-    Ok([first, second])
+    // Guaranteed to not give out an error?
+    let second = compose_lvt('ㄱ', get_ext(joong), jong).unwrap();
+
+    let res = [first, second];
+    println!("{:?}", res);
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -146,6 +157,7 @@ mod test {
         assert_eq!(Ok(['뿌', '굼']), g_wordify('뿜'));
         assert_eq!(Ok(['왜', '개']), g_wordify('왜'));
         assert_eq!(Ok(['퀴', '긱']), g_wordify('퀵'));
+        assert_eq!(Ok(['예', '게']), g_wordify('예'));
         assert_eq!(Err("Not Hangul"), g_wordify('a'));
     }
 }
