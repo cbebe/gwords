@@ -1,5 +1,4 @@
-// TODO: handle non-Hangul strings and characters
-pub mod letter;
+mod letter;
 
 pub fn gword(phrase: &str) -> String {
     let mut s = String::new();
